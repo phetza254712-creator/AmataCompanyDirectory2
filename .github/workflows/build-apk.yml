@@ -5,7 +5,8 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - 'AmataCompanyApp_AndroidStudio_Project(1).zip'
+      - 'AmataCompanyApp_BRA_TRADING_Space_Theme_1712_BRA_TRADING.zip'
+      - '.github/workflows/build-apk.yml'
 
 permissions:
   contents: read
@@ -28,18 +29,29 @@ jobs:
       - uses: android-actions/setup-android@v3
         with:
           packages: platform-tools
+
       - name: Install Android SDK
         run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
-      - name: Extract project
-        run: unzip -q 'AmataCompanyApp_AndroidStudio_Project(1).zip' -d source
+      - name: Extract updated project
+        run: unzip -q 'AmataCompanyApp_BRA_TRADING_Space_Theme_1712_BRA_TRADING.zip' -d source
 
       - name: Build APK
-        working-directory: source/AmataCompanyApp
-        run: gradle assembleDebug
+        id: build
+        shell: bash
+        run: |
+          PROJECT_DIR=$(find source -type f -name settings.gradle -o -name settings.gradle.kts | head -n 1 | xargs dirname)
+          if [ -z "$PROJECT_DIR" ]; then
+            PROJECT_DIR=$(find source -type f -path '*/app/build.gradle*' | head -n 1 | sed 's#/app/build.gradle.*##')
+          fi
+          test -n "$PROJECT_DIR"
+          gradle -p "$PROJECT_DIR" assembleDebug
+          APK_PATH=$(find "$PROJECT_DIR" -type f -path '*/build/outputs/apk/debug/*.apk' | head -n 1)
+          test -n "$APK_PATH"
+          echo "apk_path=$APK_PATH" >> "$GITHUB_OUTPUT"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: AmataCompanyDirectory-APK
-          path: source/AmataCompanyApp/app/build/outputs/apk/debug/app-debug.apk
+          name: AmataCompanyDirectory-APK-1712
+          path: ${{ steps.build.outputs.apk_path }}
           
